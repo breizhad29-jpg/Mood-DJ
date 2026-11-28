@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Mood DJ pour YouTube Music",
   "short_name": "Mood DJ",
-  "version": "2.43.0",
+  "version": "2.43.1",
   "description": "Un DJ pour YouTube Music : ambiances, courbe d'énergie, fondus, égaliseur, mode radio et sélections proposées par Claude.",
   "icons": {
     "16": "icons/icon16.png",

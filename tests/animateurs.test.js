@@ -91,8 +91,11 @@ test('dosage : jamais deux tics de suite, une expression dite passe au repos, un
   }
   assert.equal(log.filter((f) => f.gag).length, 1, 'un seul running gag dans l’émission');
   assert.ok(log.every((f) => f.hasGags));
-  assert.notEqual(log[0].mood.A, log[0].mood.B);
-  assert.ok(log.every((f) => f.mood.A === log[0].mood.A), 'l’humeur du jour ne change pas pendant l’émission');
+  // 2.43.1 : l'humeur du jour n'est plus envoyée à chaque intervention, mais c'est la même toute l'émission.
+  const moody = log.filter((f) => f.mood.A);
+  assert.ok(moody.length > 5 && moody.length < 40, 'humeur envoyée ' + moody.length + ' fois sur 80');
+  assert.notEqual(moody[0].mood.A, moody[0].mood.B);
+  assert.ok(moody.every((f) => f.mood.A === moody[0].mood.A && f.mood.B === moody[0].mood.B), 'l’humeur du jour ne change pas pendant l’émission');
   // Seul à l'antenne : pas de running gag (il se joue à deux), et seulement les expressions de celui qui parle.
   const solo = JSON.parse(JSON.stringify(p.run("ficheFocus({ variety: { angles: [] } }, 'talkover', ['B'], 1e12)")));
   assert.equal(solo.hasGags, false);
@@ -131,7 +134,8 @@ test('radio dans une autre langue : fiche en anglais comprise, petits mots angla
 test('fiche que Mood DJ ne sait pas découper : rien n’est interdit, la fiche est suivie comme avant', async () => {
   const p = loadPanel();
   p.run("Object.assign(settings, { hostPersona: 'ロック好き。ギターソロに点数をつける。', cohostPersona: 'fan de rock', duoRelation: '' }); hostMemory = { A: [], B: [], L: [] };");
-  const f = JSON.parse(JSON.stringify(p.run("ficheFocus({ variety: { angles: [] } }, 'interlude', ['A', 'B'], 1e12)")));
+  // À l'intro, l'humeur du jour est toujours donnée (ensuite, une fois sur trois environ).
+  const f = JSON.parse(JSON.stringify(p.run("ficheFocus({ variety: { angles: [] } }, 'intro', ['A', 'B'], 1e12)")));
   assert.deepEqual([f.hasSayings, f.hasFacets, f.hasGags, f.tic, f.facet], [false, false, false, null, null]);
   const bg = loadBackground();
   await bg.run('writeAnnouncement({ kind: "talkover", host: "Alex", cohost: "Sam", duo: true, turns: 2, next: "X de Y", focus: ' + JSON.stringify(f) + ' })');

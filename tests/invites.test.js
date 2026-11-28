@@ -129,8 +129,12 @@ test('invité reçu par la seconde animatrice : son prénom, sa fiche, ses souve
   assert.deepEqual(b.pay.persona.memA, ['Laeti a retrouvé un vieux micro au grenier.']);
   assert.deepEqual(b.pay.persona.memB, []);
   assert.equal(b.pay.persona.relation, '');
-  // L'humeur du jour de Laeti, sous l'étiquette « A » (c'est elle que l'IA appelle A cette fois).
-  assert.equal(b.pay.focus.mood.A, p.run('__s.variety.mood.B'));
+  // L'humeur du jour de Laeti, sous l'étiquette « A » (c'est elle que l'IA appelle A cette fois). Elle n'est pas
+  // envoyée à chaque intervention (2.43.1) : on recommence jusqu'à en voir une.
+  let withMood = b;
+  for (let i = 0; i < 60 && !withMood.pay.focus.mood.A; i++) withMood = await onAir(p, 1, 'B', 'arrivee');
+  assert.equal(withMood.pay.focus.mood.A, p.run('__s.variety.mood.B'));
+  assert.equal(withMood.pay.focus.mood.B, '');
   assert.equal(b.pay.focus.mood.B, '');
   if (b.pay.focus.facet) assert.equal(b.pay.focus.facet.who, 'A');
   if (b.pay.focus.tic) assert.equal(b.pay.focus.tic.who, 'A');
@@ -147,7 +151,9 @@ test('invité reçu par la seconde animatrice : son prénom, sa fiche, ses souve
   assert.equal(a.pay.guest.away, 'Laeti');
   assert.match(a.pay.persona.a, /^Jeff \(nom complet/);
   assert.deepEqual(a.pay.persona.memA, ['Jeff a raté son train ce matin.']);
-  assert.equal(a.pay.focus.mood.A, p.run('__s.variety.mood.A'));
+  let aMood = a;
+  for (let i = 0; i < 60 && !aMood.pay.focus.mood.A; i++) aMood = await onAir(p, 1, 'A', 'arrivee');
+  assert.equal(aMood.pay.focus.mood.A, p.run('__s.variety.mood.A'));
   assert.equal(a.tts.voiceA, gv.a);
   assert.match(a.tts.turns.find((t) => t.speaker === 'A').style, /voix de Jeff/);
 });

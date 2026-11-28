@@ -198,7 +198,13 @@
   // Si quoi que ce soit cloche (titre non intégrable, pub, lecture refusée, décalage), on garde le
   // fondu habituel.
   const X = { frame: null, vid: '', info: {}, timeAt: 0, phase: 'idle', err: '', timer: null, ramp: null,
-    seeks: 0, lastSeekAt: 0, lead: 0.25, drift: null, unmuteAt: 0, plays: 0, listenTries: 0, created: 0, got: false };
+    seeks: 0, lastSeekAt: 0, lead: 0.25, drift: null, unmuteAt: 0, plays: 0, listenTries: 0, created: 0, got: false,
+    // 2.43.1 : ce que le second lecteur a fait (états, à combien de ms), les échecs de suite, la pause après trois.
+    states: [], fails: 0, restUntil: 0, restSaid: false };
+  // États du lecteur intégré de YouTube : -1 pas démarré, 0 fini, 1 lecture, 2 pause, 3 chargement, 5 prêt.
+  function xNote(what) {
+    if (X.states.length < 40) X.states.push(Math.round((Date.now() - X.created) / 100) / 10 + 's:' + what);
+  }
   const X_ORIGIN = 'https://www.youtube.com';
 
   function xCmd(func, args) {
@@ -216,7 +222,9 @@
       if (typeof m.info.currentTime === 'number') X.timeAt = Date.now();
     } else if (m.event === 'onStateChange') {
       X.info.playerState = m.info;
+      xNote('état ' + m.info);
     } else if (m.event === 'onError') {
+      xNote('erreur ' + m.info);
       X.err = 'erreur ' + m.info + (m.info === 101 || m.info === 150 ? ' (titre non intégrable)' : '');
     }
   });
@@ -249,7 +257,17 @@
   // le lecteur principal à quelques centièmes près.
   function xSync() {
     if (!X.frame) return;
-    if (X.err) { if (X.phase !== 'failed') { blog('fondu enchaîné impossible : ' + X.err); X.phase = 'failed'; } return; }
+    if (X.err) {
+      if (X.phase !== 'failed') {
+        // Le détail sert à comprendre : chez certains, le fondu enchaîné échoue à chaque titre.
+        blog('fondu enchaîné impossible : ' + X.err, { suite: X.states.join(' · '), etat: X.info.playerState, muet: X.info.muted, volume: X.info.volume, essais: X.plays, a_repondu: X.got, echecs_de_suite: X.fails + 1 });
+        X.phase = 'failed';
+        X.fails++;
+        // Trois échecs de suite : inutile de recharger le titre dans un second lecteur à chaque fin de morceau.
+        if (X.fails >= 3) { X.restUntil = Date.now() + 30 * 60e3; X.restSaid = false; }
+      }
+      return;
+    }
     if (currentId() !== X.vid) { xfadeDrop('le titre a changé'); return; }
     if (!X.got && X.listenTries < 20) {
       X.listenTries++;
@@ -267,6 +285,7 @@
         // moment du fondu.
         xCmd('setVolume', [0]); xCmd('unMute'); xCmd('playVideo');
         X.phase = 'unmuting'; X.unmuteAt = Date.now(); X.plays = 1;
+        xNote('son ouvert');
       } else if (Date.now() - X.created > 15000) {
         X.err = 'le second lecteur ne démarre pas';
       }
@@ -277,10 +296,11 @@
         if (Date.now() - X.unmuteAt > 1800 * X.plays) {
           if (X.plays >= 3) { X.err = 'lecture avec le son refusée par le navigateur (aucun clic sur la page depuis son ouverture ?)'; return; }
           X.plays++; xCmd('playVideo');
+          xNote('relance');
         }
         return;
       }
-      if (X.phase === 'unmuting') X.phase = 'sync';
+      if (X.phase === 'unmuting') { X.phase = 'sync'; X.fails = 0; }
       const rate = v.playbackRate || 1;
       if (Math.abs((X.info.playbackRate || 1) - rate) > 0.01) xCmd('setPlaybackRate', [rate]);
       const it = xTime();
@@ -303,6 +323,12 @@
   function xfadePrep(videoId, t) {
     if (!videoId) return { ok: false };
     if (X.frame && X.vid === videoId) return xfadeStatus();
+    // Après trois échecs de suite, le second lecteur n'est plus ouvert pendant une demi-heure : fondu habituel.
+    if (Date.now() < X.restUntil) {
+      if (!X.restSaid) { X.restSaid = true; blog('fondu enchaîné : trois échecs de suite, plus de second lecteur pendant 30 minutes (fondu habituel)'); }
+      return { ok: false, reason: 'en pause après trois échecs' };
+    }
+    if (X.restUntil) { X.restUntil = 0; X.fails = 0; }
     xfadeDrop();
     const at = Math.max(0, Math.floor(Number(t) || mainTime()) + 2);
     // Le second lecteur reste visible pendant qu'il joue (règles de YouTube pour les lecteurs
@@ -338,7 +364,7 @@
     box.append(head, f);
     f.src = X_ORIGIN + '/embed/' + encodeURIComponent(videoId) + '?enablejsapi=1&autoplay=1&mute=1&controls=1&fs=0&rel=0&iv_load_policy=3&playsinline=1&start=' + at +
       '&origin=' + encodeURIComponent(location.origin);
-    Object.assign(X, { frame: f, box, vid: videoId, info: {}, timeAt: 0, phase: 'muted', err: '', seeks: 0, lastSeekAt: 0, lead: 0.25, drift: null, unmuteAt: 0, plays: 0, listenTries: 0, created: Date.now(), got: false });
+    Object.assign(X, { frame: f, box, vid: videoId, info: {}, timeAt: 0, phase: 'muted', err: '', seeks: 0, lastSeekAt: 0, lead: 0.25, drift: null, unmuteAt: 0, plays: 0, listenTries: 0, created: Date.now(), got: false, states: [] });
     f.addEventListener('load', () => {
       try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), X_ORIGIN); } catch (e) { /* ignore */ }
     });
@@ -356,6 +382,7 @@
   function xfadeGo(secs) {
     const v = videoEl();
     const p = player();
+    if (!X.frame && Date.now() < X.restUntil) return { ok: false, reason: 'en pause après trois échecs de suite' };
     if (!X.frame || X.vid !== currentId()) return { ok: false, reason: 'pas de second lecteur pour ce titre' };
     if (X.err) return { ok: false, reason: X.err };
     if (X.phase !== 'ready') return { ok: false, reason: 'second lecteur pas encore calé (' + X.phase + (X.drift !== null ? ', écart ' + X.drift + ' s' : '') + ')' };

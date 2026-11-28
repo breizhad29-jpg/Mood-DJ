@@ -783,10 +783,16 @@ function ficheFocus(s, kind, speakers, atMs) {
       store({ airLog });
     }
   }
+  // Humeur du jour (2.43.1) : envoyée à chaque intervention, elle ressortait dans presque toutes (journal du 28/11 :
+  // « rêveuse, un peu dans la lune » dans 10 interventions sur 11, « je flotte », « dans les nuages », « redescendre
+  // de la lune »). Comme pour les expressions, c'est Mood DJ qui dose : à l'intro, puis une fois sur trois environ,
+  // jamais deux interventions de suite.
+  const moodOn = kind === 'intro' || (!v.moodLast && Math.random() < 0.4);
+  v.moodLast = moodOn;
   // hasSayings, hasFacets : la fiche a-t-elle été comprise ? Une fiche sans guillemets, sans phrases découpables ou
   // écrite dans un autre alphabet n'est pas dosée : l'IA la suit comme avant, sans rien lui interdire.
   return { tic: tic ? { who: tic.who, text: tic.text } : null, rest: rest.map((x) => x.text), facet, gag, hasGags: gags.length > 0, hasSayings: all.length > 0, hasFacets: fromFile.length + fromMem.length > 0,
-    mood: { A: speakers.includes('A') ? v.mood.A : '', B: speakers.includes('B') ? v.mood.B : '' } };
+    mood: { A: moodOn && speakers.includes('A') ? v.mood.A : '', B: moodOn && speakers.includes('B') ? v.mood.B : '' } };
 }
 // Après l'écriture : quelles expressions des fiches ont été dites (elles passent « au repos »).
 function noteSayings(s, plain, atMs) {

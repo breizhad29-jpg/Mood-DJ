@@ -204,7 +204,8 @@ function engineTick(s) {
   const stale = s.prefetch && nx && !s.fadeVoice && now - (s.prefetch.at || 0) > 8000 &&
     (late || s.prefetch.key !== nx.key || announceKind(s, s.transitions + 1, 'ended', true, nx) !== s.prefetch.kind ||
       (s.prefetch.role || null) !== roleFor(s, nx) || (s.prefetch.progKeys || '') !== progKeysFor(s, nx) || (s.prefetch.hookId || '') !== hookIdFor(s, nx) ||
-      (s.prefetch.guestPhase || '') !== guestPhaseFor(s, nx) || (s.prefetch.dedicId || '') !== dedicIdOf(nx));
+      // guestPhaseNow, pas guestPhaseFor : vérifier ne doit pas prévoir un invité (voir mdj-annonces.js).
+      (s.prefetch.guestPhase || '') !== guestPhaseNow(s) || (s.prefetch.dedicId || '') !== dedicIdOf(nx));
   // Voix ratée (incident passager) : un nouvel essai dans les dernières secondes, pour la voix seule (le texte est gardé).
   const pf0 = s.prefetch;
   if (pf0 && pf0.ready && pf0.ready.voiced && !pf0.ready.audio && !pf0.retried && !stale && !s.fadeVoice && nx && pf0.key === nx.key &&

@@ -133,6 +133,12 @@ function castGuest(c, phase) {
     stay: guestStay(c.key, c.first) };
 }
 const guestSpeaks = (phase) => phase === 'arrivee' || phase === 'passage' || phase === 'depart';
+// L'étape de l'invité déjà prévu, sans en prévoir un nouveau (2.43.1). Sert à vérifier qu'une annonce prête est
+// toujours la bonne. guestPhaseFor, lui, prévoit un invité dès que son heure est passée : appelé dans cette
+// vérification, il déclarait périmée l'annonce déjà écrite et dite (journal du 28/11, 15:52 : Arthur « prévu » à
+// 9 secondes de la fin du titre, annonce refaite, interlude coupé après 20 secondes d'attente ; trois invités
+// prévus dans le journal, trois annonces jetées). L'invité est maintenant prévu à la préparation suivante.
+const guestPhaseNow = (s) => (s && s.guest ? s.guest.phase : '');
 // Une intervention avec l'invité a été dite : on passe à l'étape suivante.
 function guestAdvance(s, phase) {
   const g = s && s.guest;
@@ -547,7 +553,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
 
 async function getAnnouncement(s, kind, prev, next) {
   const fits = (pf) => pf && pf.key === next.key && pf.kind === kind && pf.promise && (pf.role || null) === roleFor(s, next) && (pf.progKeys || '') === progKeysFor(s, next) &&
-    (pf.hookId || '') === hookIdFor(s, next) && (pf.guestPhase || '') === (kind === 'intro' ? '' : guestPhaseFor(s, next)) && (pf.dedicId || '') === dedicIdOf(next);
+    (pf.hookId || '') === hookIdFor(s, next) && (pf.guestPhase || '') === (kind === 'intro' ? '' : guestPhaseNow(s)) && (pf.dedicId || '') === dedicIdOf(next);
   for (const pf of [s.prefetch, s.startPrefetch]) {
     if (!fits(pf)) continue;
     const r = await pf.promise;

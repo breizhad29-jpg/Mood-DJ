@@ -1,5 +1,30 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.43.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.43.1
 ============================================
+
+2.43.1 : TROIS CORRECTIONS D'APRÈS LE JOURNAL DU 28 NOVEMBRE
+- Interlude coupé à l'arrivée d'un invité. À 15 h 52, l'heure d'Arthur
+  est arrivée à 9 secondes de la fin d'un titre. La vérification de
+  l'annonce déjà prête prévoyait l'invité au passage, et la déclarait
+  donc périmée : texte et voix jetés, annonce refaite trop tard,
+  20 secondes d'attente puis la musique sans rien. Le journal contient
+  trois invités prévus, et trois annonces jetées de cette façon.
+  Maintenant, vérifier ne prévoit plus personne : l'annonce prête passe,
+  et l'invité est prévu à la préparation suivante.
+- Humeur du jour. Elle était envoyée à l'IA à chaque intervention et
+  ressortait dans presque toutes : « rêveuse, un peu dans la lune » dans
+  10 interventions sur 11 (« je flotte un peu », « dans les nuages »,
+  « redescendre de la lune »). Elle est maintenant donnée à l'intro,
+  puis moins de trois fois sur dix, jamais deux interventions de suite.
+- Fondu enchaîné. Dans les deux journaux reçus, il échoue à chaque titre
+  (64 essais, 64 échecs, dont 45 « lecture avec le son refusée par le
+  navigateur »). La cause n'est pas encore connue. Deux changements :
+  le journal note ce que le second lecteur a vraiment fait (ses états, à
+  quel moment, muet ou non), pour la trouver ; et après trois échecs de
+  suite, le second lecteur n'est plus ouvert pendant une demi-heure
+  (fondu habituel), au lieu de recharger le titre pour rien à chaque fin
+  de morceau.
+- Rien n'a été écouté dans Chrome sur YouTube Music.
+- 4 nouveaux tests (112 en tout).
 
 2.43.0 : TICKETMASTER RETIRÉ, LES CONCERTS PAR LA RECHERCHE GOOGLE DE GEMINI
 - Ticketmaster est retiré de l'extension : il n'était plus possible
